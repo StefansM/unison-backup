@@ -5,7 +5,7 @@ pkgrel=1
 epoch=0
 pkgdesc="Use unison to sync local and remote files, Dropbox-style."
 arch=('any')
-url=""
+url="https://github.com/StefansM/$pkgname"
 license=('GPL')
 groups=()
 depends=('unison' 'perl')
@@ -20,15 +20,24 @@ backup=()
 options=()
 install=
 changelog=
-source=("gcloud-unison-ssh"
-        "unison-backup@.service"
-        "update-debian-unison.sh"
-        "README.pod")
+source=("$pkgname::git+https://github.com/StefansM/unison-backup.git")
 noextract=()
-md5sums=()
+md5sums=('SKIP')
 validpgpkeys=()
 
+pkgver() {
+    cd "$pkgname"
+    local version=$(git describe)
+    # Strip leading "v", replace first "-" with "r" and all subsequent "-"
+    # with "." to make a legal Arch version number.
+    version=${version#v}
+    version=${version/-/r}
+    version=${version//-/.}
+    echo "$version"
+}
+
 build() {
+    cd "$pkgname"
     local podflags=(
         '--utf8'
         '--center' 'Unison-backup documentation'
@@ -42,6 +51,7 @@ build() {
 }
 
 package() {
+    cd "$pkgname"
     install -D -m755 -t "$pkgdir/usr/bin" "gcloud-unison-ssh"
     install -D -m644 -t "$pkgdir/usr/share/man/man7/" "$pkgname.7"
     install -D -m644 -t "$pkgdir/usr/share/man/man1/" "gcloud-unison-ssh.1"
