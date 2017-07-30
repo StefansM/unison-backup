@@ -1,0 +1,96 @@
+=head1 Introduction
+
+This is a set of supporting scripts for using L<unison|https://www.cis.upenn.edu/~bcpierce/unison/> to back up files over
+SSH to a remote machine. It is intended as a Dropbox replacement.
+
+Included in this repository is a
+L<systemd|https://www.freedesktop.org/wiki/Software/systemd/> unit file for
+running a backup service, a C<PKGBUILD> file for easy installation on Arch
+Linux, and a script for using unison with a virtual machine hosted using Google
+Compute Engine.
+
+=head1 Installation
+
+Installation is easiest on Arch linux because the included C<PKGBUILD> can
+install all files into the correct spot. On other operating systems, you will
+need to manually copy each file into the correct place.
+
+=head2 Arch Linux
+
+In the base directory of the git repository, run C<makepkg> to build the package
+and use C<pacman> as root to install it:
+
+    $ makepkg
+    $ sudo pacman -U unison-backup.tar.xz
+
+=head2 Other systems
+
+You will need to copy the scripts onto your C<$PATH> and the systemd files into
+your systemd unit directory. Adjust the paths in the following commands to suit
+your system.
+
+    $ cp gcloud-unison-ssh /usr/bin/
+    $ cp unison-backup@.service /usr/lib/systemd/user
+
+=head1 Configuration
+
+If you already have a remote machine set up as a backup server, you only need
+to configure a unison profile and start the C<unison-backup> service. Here is a
+simple unison profile that wil synchronise the local path C</home/me> with the
+path C</mnt/backup> on the remote host C<backup-host>.
+
+    root = /home/me
+    root = ssh://backup-host//mnt/backup
+    auto = true
+    repeat = watch
+
+Save this to C<$HOME/.unison/backup.prf> to create the C<backup> unison
+profile.  More details are available from the L<unison
+manual|https://www.cis.upenn.edu/~bcpierce/unison/download/releases/stable/unison-manual.html>.
+
+=head2 Google compute engine
+
+If you don't already have a backup server, you can start a virtual machine in
+the cloud. L<Google compute engine|https://cloud.google.com/compute/> provides
+a free tier with more capabilities than the free tier of Dropbox that works
+well for me.
+
+The only difficulty involved in using a virtual machine in the cloud is the
+host address: without paying extra for a static IP address, the IP address of
+your backup server may change at the whim of your cloud provider. Included in
+this package is the script C<gcloud-unison-ssh> that will handle the connection
+from your local machine to a server hosted by Google compute engine. This
+script relies upon the C<gcloud> executable, which is supplied by the AUR
+package C<google-cloud-sdk> for Arch Linux.
+
+Assuming that you have a backup server instance named C<backup-instance> in the
+zone C<europe-west2-a>, you would edit your unison profile so that the C<sshcmd>
+option points to C<gcloud-unison-ssh> and C<sshargs> contains arguments for
+C<gcloud>:
+
+    root = /home/me
+    root = ssh://backup-instance//mnt/backup
+    ssh-cmd = gcloud-unison-ssh
+    sshargs = --zone europe-west2-a -- ;
+
+For details about C<gcloud-unison-ssh> see C<man gcloud-unison-ssh>.
+
+=head3 Note: C<unison-fsmonitor> on Debian
+
+Unison requires the external program C<unison-fsmonitor> to monitor a directory
+tree for changes. The current version of Debian stable, recommended by Google
+as the default image, does not include C<unison-fsmonitor> with the C<unison>
+package (it gets built but not installed). You can use the script
+C<update-debian-unison.sh> (installed to
+C</usr/share/unison-backup/update-debian-unison.sh> on Arch) as a startup
+script on a Debian instance to install a non-broken version of the package.
+Alternatively, just copy the script to the instance and run it as root.
+
+=head2 Systemd
+
+This package includes a service file for running a per-user instance of unison
+in a detached L<screen|https://www.gnu.org/software/screen/>. Enable it by
+running C<systemctl --user unison-backup@I<profile>>, replacing C<I<profile>>
+with the name of the unison profile you wish to use. You can then connect to
+the screen session by running C<screen -r unison-I<profile>>, again replacing
+C<I<profile>> with your profile name.

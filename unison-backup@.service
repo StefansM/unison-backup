@@ -1,0 +1,11 @@
+[Unit]
+Description=Sync local and remote directories with unison profile %I
+Documentation=man:unison-backup(7)
+Documentation=https://www.cis.upenn.edu/~bcpierce/unison/download/releases/stable/unison-manual.html
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/screen -S unison-%i -D -m unison %i
+
+[Install]
+WantedBy=multi-user.target

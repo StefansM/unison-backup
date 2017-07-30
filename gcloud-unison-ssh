@@ -1,0 +1,113 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use Pod::Usage;
+use Getopt::Long;
+
+=head1 NAME
+
+gcloud-unison-ssh - Wrapper around "gcloud compute ssh" for unison.
+
+=head1 USAGE
+
+gcloud-unison-ssh B<--help>
+
+unison B<-sshcmd>=I<gcloud-unison-ssh>
+    B<-sshargs>='I<GCLOUD_ARGS> -- I<SSH_ARGS> ;'
+    I<UNISON_ARGS>
+
+=head1 DESCRIPTION
+
+This script is a wrapper around the
+L<gcloud|https://cloud.google.com/sdk/gcloud/> command C<gcloud compute ssh>.
+This script should be used as the C<-sshcmd> argument for
+L<unison|https://www.cis.upenn.edu/~bcpierce/unison/>. Arguments should be
+supplied by C<-sshargs>. Arguments before C<--> are passed to C<gcloud> and
+arguments after are passed to L<ssh(1)>. A terminating semicolon is required to
+indicate the end of B<SSH_ARGS>.
+
+=head1 ARGUMENTS
+
+The instance name should be given as the hostname of the remote URL. A
+terminating semicolon must be included in the C<-sshargs> so that this script
+can correctly parse its command line.
+
+=over
+
+=item I<GCLOUD_ARGS>
+
+Options to be passed to C<gcloud compute ssh>. See C<gcloud compute ssh
+--help> for a list of options.
+
+=item I<SSH_ARGS>
+
+Options to be passed directly to C<ssh>.
+
+=back
+
+=head1 EXAMPLES
+
+To connect to the instance I<backup-server> in the zone I<us-east1-b> on SSH
+port 1234:
+
+    unison -sshcmd=gcloud-unisoness \
+        -sshargs='--zone us-east1-b -- -p 1234 ;' \
+        /local/root \
+        ssh://backup-server//remote/root
+
+=head1 DETAILS
+
+Unison passes the host name as the first argument to the command specified by
+the C<-sshcmd> argument, and always supplies the option C<-e none>. This script
+will take care of placing those arguments in the correct place.
+
+A semicolon must be included as the final argument. This allows us to
+differentiate the server command, which may be an arbitrary command specified
+by unison's C<-servercmd> argument, from the SSH arguments.
+
+=head1 CAVEATS
+
+Unison will complain about illegal arguments if the value of C<-sshargs>
+contains the C<=> symbol, so you should use a space to separate options and
+values. Gcloud does not recommend this format, but seems happy enough to accept
+it. For example, the argument C<--zone=europe-west2-c> should be written as
+C<--zone europe-west2-c>.
+
+=cut
+
+my %options = ();
+Getopt::Long::Configure(qw(bundling no_ignore_case pass_through));
+GetOptions(\%options,
+    'help|h',
+    # This is here only to eat the "-e none" parameter passed by unison.
+    'e=s',
+) or pod2usage(2);
+pod2usage(-verbose => 2, -noperldoc => 1, -exitval => 1) if $options{help};
+
+my $instance_name = shift || pod2usage('No host name given.');
+pod2usage('No "--" in arguments.') if not grep {/^--$/} @ARGV;
+pod2usage('No semicolon in arguments.') if not grep {/^;$/} @ARGV;
+
+my @gcloud_args = ();
+my @ssh_args = ();
+my @server_cmd = ();
+
+# Add "-e" parameter.
+push @ssh_args, q{-e}, $options{e} if exists $options{e};
+
+my $current_args = \@gcloud_args;
+for my $arg(@ARGV) {
+    if($arg eq "--"){
+        $current_args = \@ssh_args;
+    }elsif($arg eq ";"){
+        $current_args = \@server_cmd;
+    }else{
+        push @{$current_args}, $arg;
+    }
+}
+
+system (
+    'gcloud', 'compute', 'ssh', $instance_name,
+    '--command', join(q{ }, @server_cmd),
+    @gcloud_args, '--', @ssh_args
+);
