@@ -6,6 +6,8 @@ Documentation=https://www.cis.upenn.edu/~bcpierce/unison/download/releases/stabl
 [Service]
 Type=simple
 ExecStart=/usr/bin/screen -S unison-%i -D -m unison %i
+Restart=always
+RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
