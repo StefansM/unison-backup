@@ -8,10 +8,10 @@ arch=('any')
 url="https://github.com/StefansM/$pkgname"
 license=('GPL')
 groups=()
-depends=('unison' 'perl', 'libnotify')
+depends=('unison' 'perl' 'libnotify')
 makedepends=()
-checkdepends=('google-cloud-sdk: connect to Google cloud VMs'
-              'screen: for running a detatched unison instance')
+optdepends=('google-cloud-sdk: connect to Google cloud VMs'
+            'screen: for running a detatched unison instance')
 optdepends=()
 provides=()
 conflicts=()
