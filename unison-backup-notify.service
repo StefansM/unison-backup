@@ -1,0 +1,6 @@
+[Unit]
+Description=Notify user when a unison-backup service fails
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/notify-send -u critical "Backup failure"

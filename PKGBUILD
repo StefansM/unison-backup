@@ -1,6 +1,6 @@
 # Maintainer: Stefans Mezulis <stefans.mezulis@gmail.com>
 pkgname=unison-backup
-pkgver=0.1.1
+pkgver=0.1.2
 pkgrel=1
 epoch=0
 pkgdesc="Use unison to sync local and remote files, Dropbox-style."
@@ -8,7 +8,7 @@ arch=('any')
 url="https://github.com/StefansM/$pkgname"
 license=('GPL')
 groups=()
-depends=('unison' 'perl')
+depends=('unison' 'perl', 'libnotify')
 makedepends=()
 checkdepends=('google-cloud-sdk: connect to Google cloud VMs'
               'screen: for running a detatched unison instance')
@@ -56,6 +56,7 @@ package() {
     install -D -m644 -t "$pkgdir/usr/share/man/man7/" "$pkgname.7"
     install -D -m644 -t "$pkgdir/usr/share/man/man1/" "gcloud-unison-ssh.1"
     install -D -m644 -t "$pkgdir/usr/lib/systemd/user" "unison-backup@.service"
+    install -D -m644 -t "$pkgdir/usr/lib/systemd/user" "unison-backup-notify.service"
     install -D -m644 -t "$pkgdir/usr/share/unison-backup" \
         "update-debian-unison.sh"
 }
